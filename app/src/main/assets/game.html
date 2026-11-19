@@ -6840,6 +6840,12 @@ img[data-bk^="pg:"] { object-position: 50% 70%; }
 
 /* baked scenes: a still picture, with its recorded loop faded in on top where the scene is shown large */
 img[data-bk] { object-fit: cover; object-position: 50% 50%; }
+/* on a narrow portrait screen, show each whole picture instead of cropping it to fit */
+@media (max-width: 700px) and (orientation: portrait) {
+    img[data-bk], .bk-v, #art-page img, #art-page video, #art-top img, #art-top video, .wl-img img, .wl-big-img img, .art-panel img { object-fit: contain !important; }
+    #art-page img, #art-page video, .bk-v { object-position: 50% 0% !important; }
+    #art-page, #art-top, .wl-img, .wl-big-img { background-color: #0b0814; }
+}
 .bk-v { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 50%; opacity: 0; transition: opacity 0.8s ease; pointer-events: none; }
 .bk-v.on { opacity: 1; }
 body.art-lite .bk-v { display: none; }
