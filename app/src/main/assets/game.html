@@ -1056,8 +1056,8 @@ const rlAutoOn = (G, k) => worldOf(G.best) >= RESETS[k].world + 2
 function rlGain(G, k) {
     if (!rlOpen(G, k)) return 0
     if (k == 0) {
-        const w = worldOf(G.stage), off = w * SPW + RESETS[0].realm * LAYERS * (w == 0 ? 1 : 0), F = d => d < 0 ? 0 : Math.floor(1.12 ** d * (1 + d / 9))
-        const l = G.rl[0], base = l.bw === w && l.bs != null ? F(l.bs - off) : 0      // only the climb made since the last refinement in this world pays
+        const off = RESETS[0].realm * LAYERS, F = d => d < 0 ? 0 : Math.floor(1.12 ** Math.min(d, 1500) * (1 + d / 9))
+        const l = G.rl[0], base = l.bs != null ? F(l.bs - off) : 0      // measured across every world, so a new world never pays less than the last; only the climb since your last refinement counts
         return Math.max(0, F(G.stage - off) - base)
     }
     const below = G.rl[k - 1].amt
