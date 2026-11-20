@@ -686,23 +686,23 @@ function buildCosts() {
 const HINT_AT = 81
 // how much you know of each higher world before you reach it: 0 = nothing at all (not even its name), 1 = a person tells you a little late in the world before it, 2 = it is common knowledge
 const NEXT_WORD = {
-    1: [2],
-    2: [1, `A caravan guard with a scar across his nose spits into the dust. "The Red Dust ends where the spirit-lands begin. Everyone with a gift ends up in the {n}. Most come back thinner and quieter."`],
-    3: [1, `A sect librarian, half asleep, hands you a scroll without looking up. "Past the Azure lands there is a realm where the sky is a roof and the immortals live under it. It is called the {n}. Nobody here is told how to get there."`],
-    4: [1, `A pill-seller with dead-eyed customers lowers his voice. "The {n}. Gods fell there once, and what is left is still arguing over the pieces. Ask me how I know and I will raise my prices."`],
-    5: [2],
-    6: [1, `A fisherman mending a net in the shallows, who has no business being this high up, glances at you. "Mountains go on past mountains. Those in the {n} are called sacred because the saints are buried in them. Some of them are not dead."`],
+    1: [2, null, ['it', 'size', 'scale', 'qi', 'sits', 'pop', 'sect', 'land', 'air', 'col']],
+    2: [1, `A caravan guard with a scar across his nose spits into the dust. "The Red Dust ends where the spirit-lands begin. Everyone with a gift ends up in the {n}. Most come back thinner and quieter."`, ['it', 'size']],
+    3: [1, `A sect librarian, half asleep, hands you a scroll without looking up. "Past the Azure lands there is a realm where the sky is a roof and the immortals live under it. It is called the {n}. Nobody here is told how to get there."`, ['it', 'sect']],
+    4: [1, `A pill-seller with dead-eyed customers lowers his voice. "The {n}. Gods fell there once, and what is left is still arguing over the pieces. Ask me how I know and I will raise my prices."`, ['land']],
+    5: [2, null, ['it', 'size', 'scale', 'pop', 'sect', 'land']],
+    6: [1, `A fisherman mending a net in the shallows, who has no business being this high up, glances at you. "Mountains go on past mountains. Those in the {n} are called sacred because the saints are buried in them. Some of them are not dead."`, ['land', 'air']],
     7: [0],
-    8: [1, `An old woman selling river stones weighs yours in her palm. "The {n}. Nothing grows there and nothing is hunted there. They say that is why it never ended."`],
-    9: [2],
-    10: [1, `A monk turning a prayer wheel tells you, without being asked: "The {n}. You will enter it a stranger and leave it knowing every road you have already walked."`],
+    8: [1, `An old woman selling river stones weighs yours in her palm. "The {n}. Nothing grows there and nothing is hunted there. They say that is why it never ended."`, []],
+    9: [2, null, ['it', 'size', 'qi', 'pop', 'sect', 'land', 'air', 'col']],
+    10: [1, `A monk turning a prayer wheel tells you, without being asked: "The {n}. You will enter it a stranger and leave it knowing every road you have already walked."`, ['air']],
     11: [0],
-    12: [2],
-    13: [1, `A merchant counts your stones twice and gives them back. "The {n}: where every ledger of every heaven is kept. The rich buy answers there. The poor are the answers."`],
+    12: [2, null, ['it', 'size', 'scale', 'pop', 'sect', 'land']],
+    13: [1, `A merchant counts your stones twice and gives them back. "The {n}: where every ledger of every heaven is kept. The rich buy answers there. The poor are the answers."`, ['pop', 'sect']],
     14: [0],
-    15: [1, `A boatman poling a boat across dry ground shrugs. "The {n} runs backwards, from the sea to its spring. Do not drink from it. Do not skip a stone across it either."`],
+    15: [1, `A boatman poling a boat across dry ground shrugs. "The {n} runs backwards, from the sea to its spring. Do not drink from it. Do not skip a stone across it either."`, []],
     16: [0],
-    17: [1, `A wounded defier hands you her broken sword like a favour. "The {n} is the last place the heavens do not own. Stay long enough and they come to collect."`],
+    17: [1, `A wounded defier hands you her broken sword like a favour. "The {n} is the last place the heavens do not own. Stay long enough and they come to collect."`, ['it', 'air']],
     18: [0], 19: [0], 20: [0],
 }
 const nwLevel = w => NEXT_WORD[w] ? NEXT_WORD[w][0] : 1
@@ -11117,23 +11117,27 @@ const ART = (() => {
         const rivs = RIVALS.map((r, i) => [r, i]).filter(([r]) => worldOf(r[0]) == sel), met = rivs.filter(([r, i]) => i < G.riv)
         const lore = WLORE[sel]
         const rank = sel < here || G.stage >= MAX_STAGE ? `<span class="good">#1, unrivaled</span>` : sel == here ? `#${fi(worldRank(G.stage))} of ${fmt(worldPop(sel))}` : "not yet"
-        const facts = seen ? `<div class="wl-facts">
-            <div><b>What it is</b><span>${typeof WORLD_TIER != "undefined" ? WORLD_TIER[sel] : "?"}</span></div>
-            <div><b>Size</b><span>${typeof WORLD_SIZE != "undefined" ? WORLD_SIZE[sel] : "?"}</span></div>
-            <div style="grid-column:1/-1"><b>How big that is</b><span style="white-space:normal;text-align:right">${typeof WORLD_SCALE != "undefined" ? WORLD_SCALE[sel] : ""}</span></div>
-            <div><b>Qi of this world</b><span>${QI_GRADES[Math.min(QI_GRADES.length - 1, sel)]}</span></div>
-            <div><b>Your Qi here</b><span>${sel < here || G.stage >= MAX_STAGE ? `<span class="good">you took all it could give</span>` : sel == here && typeof qiShare == "function" ? `${fqQ(G.qi)} · ${qiShare(sel).toFixed(0)}% of what it can give` : "not yet"}</span></div>
-            <div><b>Its secret</b><span style="white-space:normal;text-align:right">${typeof NEW != "undefined" && NEW.mystOf ? NEW.mystOf(G, sel) || "none" : "?"}</span></div>
-            <div><b>You arrived</b><span>${(() => { const sn = G.snaps.find(x => x[0] == sel); return sn ? (sel == 0 ? "you were born to it" : "after " + ftime(sn[1]) + " on the road") : "not yet" })()}</span></div>
-            <div style="grid-column:1/-1"><b>Where the last world sits</b><span style="white-space:normal;text-align:right">${typeof WORLD_SITS != "undefined" ? WORLD_SITS[sel] : ""}</span></div>
-            <div><b>Living cultivators</b><span>${fmt(worldPop(sel))}</span></div>
-            <div><b>Your standing</b><span>${rank}</span></div>
-            <div><b>Great sect</b><span>${SECTS[sel] || "?"}</span></div>
-            <div><b>Grudges born here</b><span>${met.length ? `${met.length} so far` : "none yet"}</span></div>
-            <div><b>Landmarks</b><span>${lore[1]}</span></div>
-            <div><b>In the air</b><span>${lore[2]}</span></div>
-            <div><b>Colours</b><span>${WS[sel].sky.concat([w.color]).map(c => `<i class="wl-sw" style="background:${c}"></i>`).join("")}</span></div></div>`
-            : `<div class="wl-facts"><div><b>What you were told</b><span style="white-space:normal;text-align:right">${NEXT_WORD[sel] && NEXT_WORD[sel][1] ? NEXT_WORD[sel][1].replace("{n}", WORLDS[sel].name) : "A name, and nothing else. The rest is mist."}</span></div></div>`
+        const RW = {
+            it: ["What it is", typeof WORLD_TIER != "undefined" ? WORLD_TIER[sel] : "?"],
+            size: ["Size", typeof WORLD_SIZE != "undefined" ? WORLD_SIZE[sel] : "?"],
+            scale: ["How big that is", typeof WORLD_SCALE != "undefined" ? WORLD_SCALE[sel] : "", 1],
+            qi: ["Qi of this world", QI_GRADES[Math.min(QI_GRADES.length - 1, sel)]],
+            yq: ["Your Qi here", sel < here || G.stage >= MAX_STAGE ? `<span class="good">you took all it could give</span>` : sel == here && typeof qiShare == "function" ? `${fqQ(G.qi)} · ${qiShare(sel).toFixed(0)}% of what it can give` : "not yet"],
+            sec: ["Its secret", typeof NEW != "undefined" && NEW.mystOf ? NEW.mystOf(G, sel) || "none" : "?", 1],
+            arr: ["You arrived", (() => { const sn = G.snaps.find(x => x[0] == sel); return sn ? (sel == 0 ? "you were born to it" : "after " + ftime(sn[1]) + " on the road") : "not yet" })()],
+            sits: ["Where the last world sits", typeof WORLD_SITS != "undefined" ? WORLD_SITS[sel] : "", 1],
+            pop: ["Living cultivators", fmt(worldPop(sel))],
+            st: ["Your standing", rank],
+            sect: ["Great sect", SECTS[sel] || "?"],
+            gr: ["Grudges born here", met.length ? `${met.length} so far` : "none yet"],
+            land: ["Landmarks", lore[1]],
+            air: ["In the air", lore[2]],
+            col: ["Colours", WS[sel].sky.concat([w.color]).map(c => `<i class="wl-sw" style="background:${c}"></i>`).join("")],
+        }
+        const row = k => RW[k][2] ? `<div style="grid-column:1/-1"><b>${RW[k][0]}</b><span style="white-space:normal;text-align:right">${RW[k][1]}</span></div>` : `<div><b>${RW[k][0]}</b><span>${RW[k][1]}</span></div>`
+        const nw = NEXT_WORD[sel] || [1], told = nw[1] ? nw[1].replace("{n}", WORLDS[sel].name) : "", rv = nw[2] || []
+        const facts = seen ? `<div class="wl-facts">` + ["it", "size", "scale", "qi", "yq", "sec", "arr", "sits", "pop", "st", "sect", "gr", "land", "air", "col"].map(row).join("") + `</div>`
+            : `<div class="wl-facts">` + (told ? `<div style="grid-column:1/-1"><b>What you were told</b><span style="white-space:normal;text-align:right">${told}</span></div>` : rv.length ? "" : `<div><b>What you know</b><span>A name, and nothing else. The rest is mist.</span></div>`) + rv.map(row).join("") + (rv.length && !told ? "" : "") + `</div>`
         let thumbs = ""
         for (let i = 0; i < NW; i++) {
             const vis = i <= reached, named = nameKnown(G, i)
