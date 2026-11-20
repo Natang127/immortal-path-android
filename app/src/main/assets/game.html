@@ -684,7 +684,30 @@ function buildCosts() {
 
 // you only learn a higher world's name when a master of your current world lets it slip, late in that world
 const HINT_AT = 81
-const knownWorld = G => Math.min(NW - 1, worldOf(G.best) + (G.best % SPW >= HINT_AT ? 1 : 0))
+// how much you know of each higher world before you reach it: 0 = nothing at all (not even its name), 1 = a person tells you a little late in the world before it, 2 = it is common knowledge
+const NEXT_WORD = {
+    1: [2],
+    2: [1, `A caravan guard with a scar across his nose spits into the dust. "The Red Dust ends where the spirit-lands begin. Everyone with a gift ends up in the {n}. Most come back thinner and quieter."`],
+    3: [1, `A sect librarian, half asleep, hands you a scroll without looking up. "Past the Azure lands there is a realm where the sky is a roof and the immortals live under it. It is called the {n}. Nobody here is told how to get there."`],
+    4: [1, `A pill-seller with dead-eyed customers lowers his voice. "The {n}. Gods fell there once, and what is left is still arguing over the pieces. Ask me how I know and I will raise my prices."`],
+    5: [2],
+    6: [1, `A fisherman mending a net in the shallows, who has no business being this high up, glances at you. "Mountains go on past mountains. Those in the {n} are called sacred because the saints are buried in them. Some of them are not dead."`],
+    7: [0],
+    8: [1, `An old woman selling river stones weighs yours in her palm. "The {n}. Nothing grows there and nothing is hunted there. They say that is why it never ended."`],
+    9: [2],
+    10: [1, `A monk turning a prayer wheel tells you, without being asked: "The {n}. You will enter it a stranger and leave it knowing every road you have already walked."`],
+    11: [0],
+    12: [2],
+    13: [1, `A merchant counts your stones twice and gives them back. "The {n}: where every ledger of every heaven is kept. The rich buy answers there. The poor are the answers."`],
+    14: [0],
+    15: [1, `A boatman poling a boat across dry ground shrugs. "The {n} runs backwards, from the sea to its spring. Do not drink from it. Do not skip a stone across it either."`],
+    16: [0],
+    17: [1, `A wounded defier hands you her broken sword like a favour. "The {n} is the last place the heavens do not own. Stay long enough and they come to collect."`],
+    18: [0], 19: [0], 20: [0],
+}
+const nwLevel = w => NEXT_WORD[w] ? NEXT_WORD[w][0] : 1
+const nameKnown = (G, w) => w <= worldOf(G.best) || (w <= knownWorld(G) && nwLevel(w) != 0)
+const knownWorld = G => { const r = worldOf(G.best), n = r + 1; return Math.min(NW - 1, r + (G.best % SPW >= HINT_AT || nwLevel(n) == 2 ? 1 : 0)) }
 const HINT_WAYS = [
     w => `Old Guo's own teacher, a wandering man who never gave his name, laughs at the town's "strongest". "Frogs in a well," he says. "Past the mountains there are people who drink the wind and live five hundred years. They call that place the ${w}."`,
     w => `On his deathbed a Grand Elder grips your wrist. "I spent nine hundred years reaching the top of this world, boy. It is a floor. I saw a crack in the sky once. They called what was behind it the ${w}." He does not say anything else, ever.`,
@@ -1289,7 +1312,14 @@ function tick(G, dt) {
     if (storyOK() && !G.story.length) tell(G, "The gutter", STORY.ascend[0])
 
     unlocks(G, T)
-    while (G.hints < knownWorld(G)) { G.hints++; if (G.hints > worldOf(G.best)) note(G, hintText(G.hints)) }
+    G.told = G.told || {}
+    for (let w = worldOf(G.best) + 1; w <= knownWorld(G); w++) {
+        if (G.told[w]) continue
+        G.told[w] = 1; G.hints = Math.max(G.hints, w)
+        const e = NEXT_WORD[w] || [1]
+        if (e[0] == 1 && e[1]) { const t = e[1].replace("{n}", WORLDS[w].name); note(G, t); if (storyOK()) tell(G, `Word of the ${WORLDS[w].name}`, t) }
+        else if (e[0] == 2) note(G, `Everyone in the ${WORLDS[w - 1].name} has heard of the ${WORLDS[w].name}. You can read what is known of it on the Worlds page.`)
+    }
     hgCheck(G); coinCheck(G)
     BACKERS.forEach((B, b) => { if (B[0][0] != "r" && B[0][0] != "b" && B[7] && !G.seen["bk" + b] && backerOpen(G, b)) { G.seen["bk" + b] = true; note(G, B[7]) } })
     while (G.riv < RIVALS.length && topStage(G) > RIVALS[G.riv][0]) { let r = RIVALS[G.riv]; G.riv++; note(G, `You have surpassed ${r[1]}. A grudge waits to be settled.`) }
@@ -5920,7 +5950,7 @@ function drawCult() {
     const w = worldOf(s), cr = Math.floor(s / LAYERS) % RPW
     // only the worlds you have reached; the next one is ??? until a master speaks of it
     const reached = worldOf(G.best), kw = knownWorld(G)
-    S("c-worlds", WORLDS.slice(0, reached + 1).map((x, i) => `<span class="${i == w ? "cur" : i < w ? "done" : ""}" style="--wc:${x.color}">${x.name}</span>`).join(" → ") + (reached >= NW - 1 ? "" : kw > reached ? ` → <span>${WORLDS[kw].name}</span>` : ` → <span>???</span>`))
+    S("c-worlds", WORLDS.slice(0, reached + 1).map((x, i) => `<span class="${i == w ? "cur" : i < w ? "done" : ""}" style="--wc:${x.color}">${x.name}</span>`).join(" → ") + (reached >= NW - 1 ? "" : kw > reached && nameKnown(G, kw) ? ` → <span>${WORLDS[kw].name}</span>` : ` → <span>???</span>`))
     S("c-scale", typeof WORLD_SCALE != "undefined" && !done ? `<span class="dim">${WORLD_SCALE[w]}</span><br><span class="dim"><b>Size:</b> ${WORLD_SIZE[w]}</span><br><span class="dim">Your Qi: <span class="qi">${fqQ(G.qi)}</span> · ${qiShare(w) >= 100 ? `<span class="good">100% of this world's Qi is yours. This world can no longer hold you. Find a bigger one.</span>` : `you hold <b>${qiRealPct(w)}%</b> of all the Qi in this world`}</span>` : "")
     let lastShown = WORLDS[w].realms.findIndex((r, i) => !realmKnown(G, w * SPW + i * LAYERS))
     if (lastShown < 0) lastShown = RPW
@@ -11081,7 +11111,7 @@ const ART = (() => {
     function labDraw() {
         const el = byId("tab-world"); if (!el) return
         const here = G.stage >= MAX_STAGE ? NW - 1 : worldOf(G.stage), reached = worldOf(G.best), known = knownWorld(G)
-        const sel = labSel < 0 || labSel > known ? here : labSel, seen = sel <= reached, w = WORLDS[sel]
+        const sel = labSel < 0 || labSel > known ? here : labSel, seen = sel <= reached || (sel <= known && nwLevel(sel) == 2), w = WORLDS[sel]
         let realms = ""
         for (let i = 0; i < RPW; i++) { const s = sel * SPW + i * LAYERS, ok = realmKnown(G, s); realms += `<span class="wl-realm ${ok ? (s <= G.best ? "done" : "") : "unk"}">${ok ? w.realms[i] : "???"}</span>` }
         const rivs = RIVALS.map((r, i) => [r, i]).filter(([r]) => worldOf(r[0]) == sel), met = rivs.filter(([r, i]) => i < G.riv)
@@ -11103,10 +11133,10 @@ const ART = (() => {
             <div><b>Landmarks</b><span>${lore[1]}</span></div>
             <div><b>In the air</b><span>${lore[2]}</span></div>
             <div><b>Colours</b><span>${WS[sel].sky.concat([w.color]).map(c => `<i class="wl-sw" style="background:${c}"></i>`).join("")}</span></div></div>`
-            : `<div class="wl-facts"><div><b>What you know</b><span>Your Qi has touched its edge, and a name rose out of the mist. The rest is still mist.</span></div></div>`
+            : `<div class="wl-facts"><div><b>What you were told</b><span style="white-space:normal;text-align:right">${NEXT_WORD[sel] && NEXT_WORD[sel][1] ? NEXT_WORD[sel][1].replace("{n}", WORLDS[sel].name) : "A name, and nothing else. The rest is mist."}</span></div></div>`
         let thumbs = ""
         for (let i = 0; i < NW; i++) {
-            const vis = i <= reached, named = i <= known
+            const vis = i <= reached, named = nameKnown(G, i)
             if (!named) { thumbs += `<div class="wl-th unk"><div class="wl-img"></div><span>??? · somewhere above</span></div>`; break }
             thumbs += `<div class="wl-th ${i == sel ? "sel" : ""} ${vis ? "" : "veil"}" onclick="ART.labPick(${i})"><div class="wl-img">${asImg(scene("w" + i, 1200, 300))}</div><span style="color:${WORLDS[i].color}">${i + 1}. ${WORLDS[i].name}</span></div>`
         }
