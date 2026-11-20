@@ -4269,9 +4269,10 @@ const NEW = (() => {
     function slTour(G) {
         const s = slS(G); if (!slIn(G) || G.t - s.tour < TOUR_CD) return false
         s.tour = G.t; s.tours++
-        const place = Math.max(1, RANKS.length - G.sect.rank), gain = Math.round((14 - place) * 5 * slScale(G))
+        const rk = Math.max(1, RANKS.length - G.sect.rank), N = 2000 + 1500 * G.sect.idx, fr = (RANKS.length - 1 - G.sect.rank) / (RANKS.length - 1)
+        const place = G.sect.rank >= RANKS.length - 1 ? 1 : Math.max(2, Math.round(N * fr ** 3 * (0.85 + Math.random() * 0.3))), gain = Math.round((14 - rk) * 5 * slScale(G))
         s.merit += gain; s.lastPlace = place; s.lastIdx = G.sect.idx; s.lastRank = G.sect.rank
-        if (!G.away) note(G, `The Grand Contest of the ${SECTS[G.sect.idx].replace(/^The /, "")}: you place ${place == 1 ? "first" : "#" + place}. (+${gain} merit)`)
+        if (!G.away) note(G, `The Grand Contest of the ${SECTS[G.sect.idx].replace(/^The /, "")}: you place ${place == 1 ? "first" : "#" + place.toLocaleString()} among ${N.toLocaleString()} disciples. (+${gain} merit)`)
         return true
     }
     const STU_RANK = 6, STU_MAX = 3, STU_LV = 10
@@ -4306,7 +4307,7 @@ const NEW = (() => {
         h += `<div class="sect-title" style="font-size:16px">A rival in your own sect</div><div class="list wide"><div class="row ${dk >= 3 ? "done" : "cur"}"><div style="text-align:left"><b>${r}</b><br><span class="dim">${dk >= 3 ? "Beaten three times. A friend now, more or less." : G.sect.rank >= SL_DUELS[dk][0] ? `Will duel you now. You ${slDuelWin(G, dk) ? "<span class='good'>look strong enough</span>" : "are not strong enough yet"}.` : `Will not bother with you until you are a ${RANKS[SL_DUELS[dk][0]]}.`}</span></div><span>duels won: ${dk} / 3</span><span>${dk < 3 && G.sect.rank >= SL_DUELS[dk][0] ? `<button onclick="NEW.act('slDuel',${dk})">Duel</button>` : ""}</span></div></div>`
         // contest
         const wait = TOUR_CD - (G.t - s.tour)
-        h += `<div class="sect-title" style="font-size:16px">The Grand Contest</div><div class="line">${wait > 0 ? `The next contest is in ${FT(wait)}.${s.lastPlace && s.lastIdx === G.sect.idx ? ` Last time you placed ${s.lastPlace == 1 ? "first" : "#" + s.lastPlace}${s.lastRank != null && s.lastRank != G.sect.rank ? ` (as ${RANKS[s.lastRank]})` : ""}.` : ""}` : `<button class="big" onclick="NEW.act('slTour')"><b>Enter the Grand Contest</b><br><span class="dim">the higher your rank, the better you place</span></button>`}</div>`
+        h += `<div class="sect-title" style="font-size:16px">The Grand Contest</div><div class="line">${wait > 0 ? `The next contest is in ${FT(wait)}.${s.lastPlace && s.lastIdx === G.sect.idx ? ` Last time you placed ${s.lastPlace == 1 ? "first" : "#" + s.lastPlace.toLocaleString()}${s.lastRank != null && s.lastRank != G.sect.rank ? ` (as ${RANKS[s.lastRank]})` : ""}.` : ""}` : `<button class="big" onclick="NEW.act('slTour')"><b>Enter the Grand Contest</b><br><span class="dim">the higher your rank, the better you place</span></button>`}</div>`
         // students
         const L = s.stu[idx] || []
         h += `<div class="sect-title" style="font-size:16px">Your students</div>`
