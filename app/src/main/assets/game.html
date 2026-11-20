@@ -4270,7 +4270,7 @@ const NEW = (() => {
         const s = slS(G); if (!slIn(G) || G.t - s.tour < TOUR_CD) return false
         s.tour = G.t; s.tours++
         const place = Math.max(1, RANKS.length - G.sect.rank), gain = Math.round((14 - place) * 5 * slScale(G))
-        s.merit += gain; s.lastPlace = place
+        s.merit += gain; s.lastPlace = place; s.lastIdx = G.sect.idx; s.lastRank = G.sect.rank
         if (!G.away) note(G, `The Grand Contest of the ${SECTS[G.sect.idx].replace(/^The /, "")}: you place ${place == 1 ? "first" : "#" + place}. (+${gain} merit)`)
         return true
     }
@@ -4306,7 +4306,7 @@ const NEW = (() => {
         h += `<div class="sect-title" style="font-size:16px">A rival in your own sect</div><div class="list wide"><div class="row ${dk >= 3 ? "done" : "cur"}"><div style="text-align:left"><b>${r}</b><br><span class="dim">${dk >= 3 ? "Beaten three times. A friend now, more or less." : G.sect.rank >= SL_DUELS[dk][0] ? `Will duel you now. You ${slDuelWin(G, dk) ? "<span class='good'>look strong enough</span>" : "are not strong enough yet"}.` : `Will not bother with you until you are a ${RANKS[SL_DUELS[dk][0]]}.`}</span></div><span>duels won: ${dk} / 3</span><span>${dk < 3 && G.sect.rank >= SL_DUELS[dk][0] ? `<button onclick="NEW.act('slDuel',${dk})">Duel</button>` : ""}</span></div></div>`
         // contest
         const wait = TOUR_CD - (G.t - s.tour)
-        h += `<div class="sect-title" style="font-size:16px">The Grand Contest</div><div class="line">${wait > 0 ? `The next contest is in ${FT(wait)}.${s.lastPlace ? ` Last time you placed ${s.lastPlace == 1 ? "first" : "#" + s.lastPlace}.` : ""}` : `<button class="big" onclick="NEW.act('slTour')"><b>Enter the Grand Contest</b><br><span class="dim">the higher your rank, the better you place</span></button>`}</div>`
+        h += `<div class="sect-title" style="font-size:16px">The Grand Contest</div><div class="line">${wait > 0 ? `The next contest is in ${FT(wait)}.${s.lastPlace && s.lastIdx === G.sect.idx ? ` Last time you placed ${s.lastPlace == 1 ? "first" : "#" + s.lastPlace}${s.lastRank != null && s.lastRank != G.sect.rank ? ` (as ${RANKS[s.lastRank]})` : ""}.` : ""}` : `<button class="big" onclick="NEW.act('slTour')"><b>Enter the Grand Contest</b><br><span class="dim">the higher your rank, the better you place</span></button>`}</div>`
         // students
         const L = s.stu[idx] || []
         h += `<div class="sect-title" style="font-size:16px">Your students</div>`
@@ -5726,20 +5726,11 @@ function setTab(id) { curTab = id; render() }
 
 function notifyTab(id) {
     if (id == "story") return bookUnread()
-    if (id == "cult") return G.mer < 12 ? G.copper >= merCost(G.mer) : G.qi >= T.cost && G.stage < MAX_STAGE
+    if (id == "cult") return G.mer < 12 && G.copper >= merCost(G.mer)
     if (typeof EXTRA != "undefined" && id.startsWith("x")) { const t = EXTRA.tabs.find(x => "x" + x.id == id); return t && t.notify ? !!t.notify(G, T) : false }
-    if (id == "tech") return !(hasAuto(G, "tech") && G.auto.tech) && G.tech.some((l, k) => k < techCount(G) && l < TECH_MAX && G.qi >= techCost(k, l))
-    if (id == "comp") return !(hasAuto(G, "comp") && G.auto.comp) && G.compCost.some((c, i) => !G.comp.includes(i) && G.gold >= c)
-    if (id == "books") return !(hasAuto(G, "book") && G.auto.book) && BOOKS.some((b, i) => G.owned[i] && G.gold >= bookCost(i, G.books[i]))
-    if (id == "root") return !(hasAuto(G, "root") && G.auto.root) && G.root < T.rootMax && G.gold >= T.rootCost * 10
-    if (id == "sect") return canJoin(G) || SECTS.some((n, i) => canReturn(G, i)) || !(hasAuto(G, "sect") && G.auto.sect) && G.sect.idx >= 0 && G.sect.rank < RANKS.length - 1 && G.sect.contrib >= rankCost(G.sect.rank)
-    if (id == "alch") return !(hasAuto(G, "craft") && G.auto.craft) && (G.gold >= gardenCost(G) || PILLS.some((p, i) => G.herbs >= pillCost(G.pills[i]) && !(i == 3 && G.pills[3] >= 15)))
-    if (id == "arts") return !(hasAuto(G, "craft") && G.auto.craft) && ARTS.some((a, i) => G.ore >= artCost(G.arts[i]))
-    if (id == "laws") return !(hasAuto(G, "law") && G.auto.law) && G.laws.some(l => T.insight >= lawCost(l))
-    if (id == "disc") return G.gold >= discCost(G) || freeDisc(G) > 0
-    if (id == "grudge") return G.settled.length < G.riv || hgWaiting(G) > 0 || BACKERS.some((b, i) => backerOpen(G, i) && !G.bset.includes(i) && backerPast(G, i))
+    if (id == "sect") return canJoin(G) || SECTS.some((n, i) => canReturn(G, i))
+    if (id == "grudge") return hgWaiting(G) > 0 || BACKERS.some((b, i) => backerOpen(G, i) && !G.bset.includes(i) && backerPast(G, i))
     if (id == "rl") return RESETS.some((R, k) => rlOpen(G, k) && !rlPassive(G, k) && !rlAutoOn(G, k) && T.rlGain[k] >= Math.max(1, G.rl[k].amt))
-    if (id == "pur") return PURSUITS.some((P, i) => purOpen(G, i) && !(purAuto(G, i) && G.auto.craft) && (G.gold >= purGenCost(G, i) || P.ups.some((u, j) => G.pur[i].res >= purUpCost(G.pur[i].ups[j]))))
     return false
 }
 
