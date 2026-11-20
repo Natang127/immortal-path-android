@@ -3,7 +3,8 @@ android {
     namespace 'com.immortalpath.game'
     compileSdk 34
     defaultConfig { applicationId 'com.immortalpath.game'; minSdk 24; targetSdk 34; versionCode 1; versionName '1.0' }
+    signingConfigs { fixed { storeFile file('ip.keystore'); storePassword 'immortal'; keyAlias 'ip'; keyPassword 'immortal' } }
     androidResources { noCompress 'html' }
-    buildTypes { release { minifyEnabled false } }
+    buildTypes { debug { signingConfig signingConfigs.fixed }; release { minifyEnabled false; signingConfig signingConfigs.fixed } }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
 }
