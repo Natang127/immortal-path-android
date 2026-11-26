@@ -252,6 +252,9 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void speak(String t) {
             if (tts != null) tts.speak(t, TextToSpeech.QUEUE_FLUSH, null, "j");
         }
+        @JavascriptInterface public void stopSpeaking() {
+            if (tts != null) tts.stop();
+        }
         @JavascriptInterface public void setLink(String t) {
             ui.post(() -> { if (!useLink(t)) web.evaluateJavascript("bad()", null); });
         }
